@@ -15,6 +15,13 @@
       "when": 1792894894988,
       "tag": "0001_certain_famine",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1792900528896,
+      "tag": "0002_clean_texas_twister",
+      "breakpoints": true
     }
   ]
 }

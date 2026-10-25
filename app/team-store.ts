@@ -1,21 +1,35 @@
 import {env} from 'cloudflare:workers';
 import {z} from 'zod';
-import {getChatGPTUser} from './chatgpt-auth';
+import {getRequestIdentity,IdentityError} from './request-identity';
 import {isAdministrator} from './server-access';
 import {projectSchema,initialState,tasks,assessmentResult,type Project} from './model';
 export class AccessError extends Error {constructor(public status:number,message:string){super(message);}}
-export type Actor={email:string;userId:string;name:string;admin:boolean;canCreate:boolean;canShare:boolean};
-export type Member={email:string;name:string;active:number;can_create:number;can_share:number;revision:number;updated_at:string};
+export type Actor={email:string;userId:string;name:string;admin:boolean;canCreate:boolean;canShare:boolean;provider:'firebase'|'chatgpt'};
+export type Member={email:string;name:string;active:number;can_create:number;can_share:number;revision:number;updated_at:string;firebase_uid:string|null};
 export type ProjectRow={id:string;payload:string;created_by:string;revision:number;updated_at:string};
 export const normalize=(email:string)=>email.trim().toLowerCase();
 export const idSchema=z.string().regex(/^[a-z0-9-]{1,80}$/);
 export const emailSchema=z.string().trim().email().max(254).transform(normalize);
 export const roleSchema=z.enum(['viewer','editor','manager']);
 export function db(){if(!env.DB)throw new AccessError(503,'資料庫暫時無法使用。');return env.DB;}
-export async function actor():Promise<Actor>{const u=await getChatGPTUser();if(!u)throw new AccessError(401,'請先登入。');const admin=isAdministrator(u,env.TRAINING_ADMIN_EMAIL);const email=normalize(u.email);if(admin)return {email,userId:u.userId,name:u.displayName||email,admin:true,canCreate:true,canShare:true};const m=await db().prepare('SELECT * FROM team_members WHERE email=? AND active=1').bind(email).first<Member>();if(!m)throw new AccessError(403,'此帳號尚未經管理者核准，或已停用。請提供登入信箱給管理者。');return {email,userId:u.userId,name:m.name||email,admin:false,canCreate:!!m.can_create,canShare:!!m.can_share};}
+export async function actor():Promise<Actor>{
+ const u=await getRequestIdentity();if(!u)throw new AccessError(401,'請先登入。');
+ const email=normalize(u.email),admin=u.provider==='chatgpt'&&isAdministrator(u,env.TRAINING_ADMIN_EMAIL);
+ if(admin)return {email,userId:u.userId,name:u.displayName||email,admin:true,canCreate:true,canShare:true,provider:u.provider};
+ if(u.provider!=='firebase')throw new AccessError(403,'工程師請改用Google帳號或信箱密碼登入。');
+ const m=await db().prepare('SELECT * FROM team_members WHERE email=? AND active=1').bind(email).first<Member>();
+ if(!m)throw new AccessError(403,'此帳號尚未經管理者核准，或已停用。請提供登入信箱給管理者。');
+ if(m.firebase_uid&&m.firebase_uid!==u.userId)throw new AccessError(403,'登入帳號與已綁定身份不符，請聯絡管理者。');
+ if(!m.firebase_uid){
+  let linked:{firebase_uid:string}|null=null;
+  try{linked=await db().prepare('UPDATE team_members SET firebase_uid=? WHERE email=? AND active=1 AND (firebase_uid IS NULL OR firebase_uid=?) RETURNING firebase_uid').bind(u.userId,email,u.userId).first<{firebase_uid:string}>();}catch{throw new AccessError(403,'登入身份無法綁定，請聯絡管理者。');}
+  if(!linked)throw new AccessError(403,'帳號狀態已改變，請聯絡管理者。');
+ }
+ return {email,userId:'firebase:'+u.userId,name:m.name||email,admin:false,canCreate:!!m.can_create,canShare:!!m.can_share,provider:u.provider};
+}
 export function requireAdmin(a:Actor){if(!a.admin)throw new AccessError(403,'僅管理者可操作。');}
 export function json(value:unknown,status=200){return Response.json(value,{status,headers:{'Cache-Control':'private, no-store','Vary':'Cookie','X-Content-Type-Options':'nosniff'}});}
-export function failure(e:unknown){if(e instanceof AccessError)return json({error:e.message},e.status);if(e instanceof z.ZodError)return json({error:e.issues[0]?.message||'資料格式錯誤'},400);return json({error:'操作未完成，請保留本頁資料後重試。'},500);}
+export function failure(e:unknown){if(e instanceof AccessError||e instanceof IdentityError)return json({error:e.message},e.status);if(e instanceof z.ZodError)return json({error:e.issues[0]?.message||'資料格式錯誤'},400);return json({error:'操作未完成，請保留本頁資料後重試。'},500);}
 export async function body(request:Request,max=1500000){const origin=request.headers.get('origin');if(origin!==new URL(request.url).origin)throw new AccessError(403,'不接受其他網站或缺少來源的寫入。');if(!(request.headers.get('content-type')||'').startsWith('application/json'))throw new AccessError(415,'需使用JSON格式。');const size=Number(request.headers.get('content-length')||0);if(size>max)throw new AccessError(413,'資料過大。');const reader=request.body?.getReader();if(!reader)throw new AccessError(400,'缺少資料。');const chunks:Uint8Array[]=[];let total=0;while(true){const {done,value}=await reader.read();if(done)break;total+=value.length;if(total>max){await reader.cancel();throw new AccessError(413,'資料過大。');}chunks.push(value);}const data=new Uint8Array(total);let offset=0;for(const c of chunks){data.set(c,offset);offset+=c.length;}try{return JSON.parse(new TextDecoder().decode(data));}catch{throw new AccessError(400,'JSON格式錯誤。');}}
 export function event(a:Actor,action:string,id:string|null,detail:string){return db().prepare('INSERT INTO audit_events(id,actor,action,project_id,detail,created_at) VALUES(?,?,?,?,?,?)').bind(crypto.randomUUID(),a.email,action,id,detail,new Date().toISOString());}
 export async function permit(a:Actor,id:string,write=false){idSchema.parse(id);const row=await db().prepare('SELECT * FROM projects WHERE id=?').bind(id).first<ProjectRow>();if(!row)throw new AccessError(404,'找不到專案或沒有權限。');let role='manager';if(!a.admin){const grant=await db().prepare('SELECT pa.role FROM project_access pa JOIN team_members m ON m.email=pa.email WHERE pa.project_id=? AND pa.email=? AND m.active=1').bind(id,a.email).first<{role:string}>();if(!grant||write&&grant.role==='viewer')throw new AccessError(404,'找不到專案或沒有權限。');role=grant.role;}return {row,role,canEdit:a.admin||role!=='viewer',canShare:a.admin||role==='manager'&&a.canShare};}
