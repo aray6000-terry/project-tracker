@@ -3,7 +3,7 @@ import { runWithConnectorBinding } from "../lib/connector-context";
 import type { ConnectorBinding } from "../lib/connector-contract.mjs";
 
 const worker = {
-  fetch(request: Request, env: Cloudflare.Env, ctx: ExecutionContext<{ CONNECTORS?: ConnectorBinding }>) {
+  async fetch(request: Request, env: Cloudflare.Env, ctx: ExecutionContext<{ CONNECTORS?: ConnectorBinding }>) {
     let binding = ctx.props?.CONNECTORS;
     // Local preview emulates the same request-scoped capability. This branch and
     // the auxiliary service binding are absent from production builds.
@@ -23,7 +23,15 @@ const worker = {
         },
       };
     }
-    return runWithConnectorBinding(binding, () => handler.fetch(request, env, ctx));
+    const response = await runWithConnectorBinding(binding, () => handler.fetch(request, env, ctx));
+    const protectedResponse = new Response(response.body, response);
+    protectedResponse.headers.set('X-Content-Type-Options','nosniff');
+    protectedResponse.headers.set('Referrer-Policy','no-referrer');
+    protectedResponse.headers.set('Permissions-Policy','camera=(), microphone=(), geolocation=()');
+    protectedResponse.headers.set('Content-Security-Policy', "object-src 'none'; base-uri 'self'; frame-ancestors 'self' https://chatgpt.com; form-action 'self'");
+    if (new URL(request.url).protocol === 'https:') protectedResponse.headers.set('Strict-Transport-Security','max-age=31536000');
+    if (/^\/(api|workspace|mcp)(\/|$)/.test(new URL(request.url).pathname)) protectedResponse.headers.set('Cache-Control','private, no-store');
+    return protectedResponse;
   },
 };
 
