@@ -7,7 +7,8 @@ export const statusNames:Record<string,string>={todo:'未開始',active:'進行�
 const txt=z.string().max(6000); const short=z.string().max(200);
 const date=z.string().refine(v=>!v||/^\d{4}-\d{2}-\d{2}$/.test(v)&&!isNaN(Date.parse(v)), '日期格式錯誤');
 const evidence=txt.refine(v=>!v||/^https?:\/\/[^\s]+$/i.test(v),'證據請填完整 http 或 https 連結');
-export const taskSchema=z.object({status:z.enum(['todo','active','blocked','done']),owner:short,due:date,evidence,reviewer:short,reviewDate:date,notes:txt,actualHours:z.number().min(0).max(1000)}).strict().superRefine((v,c)=>{if(v.status==='done'&&(!v.owner.trim()||!v.evidence||!v.reviewer.trim()||!v.reviewDate))c.addIssue({code:'custom',message:'完成任務須填負責人、證據連結、覆核人及覆核日期'});if(v.status==='blocked'&&!v.notes.trim())c.addIssue({code:'custom',message:'受阻任務須填原因與下一步'});});
+export const taskBaseSchema=z.object({status:z.enum(['todo','active','blocked','done']),owner:short,due:date,evidence,reviewer:short,reviewDate:date,notes:txt,actualHours:z.number().min(0).max(1000)}).strict();
+export const taskSchema=taskBaseSchema.superRefine((v,c)=>{if(v.status==='done'&&(!v.owner.trim()||!v.evidence||!v.reviewer.trim()||!v.reviewDate))c.addIssue({code:'custom',message:'完成任務須填負責人、證據連結、覆核人及覆核日期'});if(v.status==='blocked'&&!v.notes.trim())c.addIssue({code:'custom',message:'受阻任務須填原因與下一步'});});
 export type TaskRecord=z.infer<typeof taskSchema>;
 export const emptyTask:TaskRecord={status:'todo',owner:'',due:'',evidence:'',reviewer:'',reviewDate:'',notes:'',actualHours:0};
 const score=z.number().min(0).max(100).nullable();
@@ -28,3 +29,18 @@ export function stationPassed(s:typeof emptyStation){return s.score!==null&&s.sc
 export function skillPassed(s:typeof emptySkill){return s.level!==null&&s.level>=3&&!!s.evidence&&!!s.reviewer.trim()&&!!s.date;}
 export function assessmentResult(p:Project,n:number){const a=p.assessments[String(n)];if(!a||a.scores.some(x=>x===null))return {label:'待評分',passed:false,total:null};const total=a.scores.reduce<number>((s,x,i)=>s+(x||0)*[.2,.4,.2,.2][i],0);if(a.scores.some(x=>(x||0)<80)||total<80||!a.safe)return {label:'需補訓／安全確認',passed:false,total};if(!a.docs||!a.issuesClosed||!a.evidence)return {label:'待完成條件',passed:false,total};if(n===6&&(!stationNames.every((_,i)=>stationPassed(p.stations[i]||emptyStation))||!skillNames.every((_,i)=>skillPassed(p.skills[i]||emptySkill))))return {label:'待實作與能力達標',passed:false,total};if(!a.mentor.trim()||!a.manager.trim()||!a.date)return {label:'待簽認',passed:false,total};return {label:'通過',passed:true,total};}
 export function csvCell(v:unknown){let s=String(v??'');if(/^[=+\-@\t\r]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';}
+
+// Public API uses an allowlist projection; private records are never sent to anonymous viewers.
+export const publicStateSchema=z.object({schemaVersion:z.literal(1),projects:z.array(projectSchema.extend({tasks:z.record(taskBaseSchema)})).min(1).max(30)}).strict();
+export const publicSummarySchema=z.record(z.object({hours:z.number().min(0),stages:z.array(z.boolean()).length(6)}).strict());
+export type PublicSummary=z.infer<typeof publicSummarySchema>;
+export function publicProjection(state:State){
+ const summary:PublicSummary={};
+ const projects=state.projects.map(p=>{
+  summary[p.id]={hours:tasks.filter(t=>t.category==='培訓指導').reduce((s,t)=>s+(p.tasks[t.id]?.actualHours||0),0),stages:[1,2,3,4,5,6].map(n=>assessmentResult(p,n).passed)};
+  const records:Record<string,TaskRecord>={};
+  for(const [id,r] of Object.entries(p.tasks))records[id]={...emptyTask,status:r.status,due:r.due};
+  return {id:p.id,name:p.name,learner:'',mentor:'',startDate:p.startDate,tasks:records,assessments:{},stations:{},skills:{}};
+ });
+ return {state:{schemaVersion:1 as const,projects},summary};
+}
