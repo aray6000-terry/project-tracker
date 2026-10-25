@@ -1,0 +1,28 @@
+import fs from 'node:fs';
+import vm from 'node:vm';
+import path from 'node:path';
+import {createRequire} from 'node:module';
+import assert from 'node:assert/strict';
+import ts from 'typescript';
+const file=path.resolve('app/model.ts');
+const compiled=ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true,resolveJsonModule:true}}).outputText;
+const mod={exports:{}};vm.runInNewContext(compiled,{require:createRequire(file),module:mod,exports:mod.exports,Set,Date,Intl,console},{filename:file});
+const m=mod.exports;
+let count=0;function check(label,fn){fn();count++;console.log('PASS '+label);}
+check('182 checklist items and unique IDs',()=>{assert.equal(m.tasks.length,182);assert.equal(new Set(m.tasks.map(x=>x.id)).size,182);});
+check('24 weeks each contain 5 steps / total 240 teaching hours',()=>{for(let w=1;w<=24;w++)assert.equal(m.tasks.filter(t=>t.week===w).length,5);assert.equal(m.tasks.reduce((s,t)=>s+t.hours,0),240);});
+check('completed task requires owner evidence and review',()=>assert.equal(m.taskSchema.safeParse({...m.emptyTask,status:'done'}).success,false));
+check('blocked task requires next action',()=>assert.equal(m.taskSchema.safeParse({...m.emptyTask,status:'blocked'}).success,false));
+check('valid task with safe URL accepted; unsafe URL rejected',()=>{const t={...m.emptyTask,status:'done',owner:'測試',reviewer:'師傅',reviewDate:'2026-10-25',evidence:'https://example.com/report'};assert.equal(m.taskSchema.safeParse(t).success,true);assert.equal(m.taskSchema.safeParse({...t,evidence:'javascript:alert(1)'}).success,false);});
+check('empty assessments never pass',()=>assert.equal(m.assessmentResult(m.initialState().projects[0],1).passed,false));
+const p=m.initialState().projects[0];p.assessments['1']={...m.emptyAssessment,scores:[80,80,80,80],safe:true,docs:true,issuesClosed:true,evidence:'https://example.com',mentor:'師傅',manager:'主管',date:'2026-10-25'};
+check('all stage criteria required',()=>{assert.equal(m.assessmentResult(p,1).passed,true);p.assessments['1'].scores=[79,100,100,100];assert.equal(m.assessmentResult(p,1).passed,false);p.assessments['1'].scores=[80,80,80,80];p.assessments['1'].safe=false;assert.equal(m.assessmentResult(p,1).passed,false);p.assessments['1'].safe=true;p.assessments['1'].date='';assert.equal(m.assessmentResult(p,1).label,'待簽認');p.assessments['1'].date='2026-10-25';});
+p.assessments['6']={...p.assessments['1']};
+check('final stage waits for stations and capabilities',()=>assert.equal(m.assessmentResult(p,6).passed,false));
+for(let i=0;i<4;i++)p.stations[i]={score:80,safe:true,evidence:'https://example.com',reviewer:'師傅',date:'2026-10-25'};
+for(let i=0;i<8;i++)p.skills[i]={level:3,evidence:'https://example.com',reviewer:'師傅',date:'2026-10-25'};
+check('final pass; low station or skill blocks pass',()=>{assert.equal(m.assessmentResult(p,6).passed,true);p.stations[2].score=79;assert.equal(m.assessmentResult(p,6).passed,false);p.stations[2].score=80;p.skills[0].level=2;assert.equal(m.assessmentResult(p,6).passed,false);});
+check('date calculation crosses calendar year correctly',()=>{p.startDate='2026-12-28';assert.equal(m.dueDate(m.tasks[0],p),'2027-01-03');});
+check('backup rejects unknown tasks and duplicate projects',()=>{const s=m.initialState();s.projects[0].tasks.bad={...m.emptyTask};assert.equal(m.stateSchema.safeParse(s).success,false);const s2=m.initialState();s2.projects.push({...s2.projects[0]});assert.equal(m.stateSchema.safeParse(s2).success,false);});
+check('CSV formulas escaped and backups round trip',()=>{assert.equal(m.csvCell('=1+2'),'"\'=1+2"');assert.equal(m.stateSchema.safeParse(JSON.parse(JSON.stringify(m.initialState()))).success,true);});
+console.log(JSON.stringify({tests:count,result:'passed'}));
