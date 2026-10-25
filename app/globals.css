@@ -11,3 +11,157 @@
 @media(max-width:900px){.portal-header{height:auto;min-height:80px;padding:18px 22px}.portal-auth>span{display:none}.portal-hero h1{font-size:36px}.portal-features,.course-topics{grid-template-columns:1fr}.course-strip{grid-template-columns:repeat(3,1fr)}.project-cards,.member-layout{grid-template-columns:1fr}.portal-main,.portal-public{padding:28px 18px}.create-project{align-items:stretch;flex-direction:column}.portal-tabs{overflow:auto}.portal-tabs button{white-space:nowrap}.portal-modal{padding:20px}.portal-features{gap:14px}.portal .page-heading{align-items:flex-start;gap:20px}}
 
 .portal main{margin:0 auto}.portal .brand{margin:0}.portal .brand strong{color:#172c46;font-size:20px}.portal .brand-mark{width:44px;height:44px;flex:none;background:#185dd8;color:white;border-radius:12px;display:grid;place-items:center;font-size:25px}
+
+/* Phone layouts retain every field without a horizontal table. */
+.mobile-label,.mobile-project-name{display:none}
+.table-scroll{position:relative}
+.project-card,.member-layout>* , .project-select,.grant-list span,.modal-head h2{min-width:0}
+.project-card h2,.project-card p,.grant-list span,.portal-modal h2,.modal-head h2,.modal-content,.notice,.project-meta{overflow-wrap:anywhere}
+@media(max-width:700px){
+  body{font-size:15px;line-height:1.7;--muted:#5d718c}
+  .desktop-label{display:none}
+  .project-select select{display:none}
+  .mobile-project-name{display:block;margin:4px 0 0;font-size:16px;font-weight:600;line-height:1.7;overflow-wrap:anywhere}
+  button,.button,.compact,.portal button,.portal .button{min-height:44px;font-size:14px;padding:10px 12px}
+  .icon-btn{min-width:44px;min-height:44px;flex-shrink:0}
+  input:not([type=checkbox]),select,textarea,.portal input:not([type=checkbox]),.portal select,.search-field input,.toolbar select{font-size:16px;min-height:46px;max-width:100%}
+  label,.portal label,.competency label,.score-grid label{font-size:14px;min-width:0}
+  .checkbox,.checks label,.competency .checkbox{font-size:14px;min-height:44px;flex-direction:row}
+  .checks input,.checkbox input,.portal input[type=checkbox]{width:20px;height:20px;flex-shrink:0}
+  .muted,.portal-hero .muted{font-size:13px}
+  .sidebar{padding:16px 12px 0}
+  .sidebar .brand{margin-inline:4px}
+  .sidebar nav{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:3px;overflow:visible;padding-bottom:12px}
+  .sidebar nav button{min-width:0;min-height:64px;flex-direction:column;justify-content:center;font-size:12px;line-height:1.4;gap:7px;padding:9px 2px;white-space:normal}
+  .sidebar nav button svg{width:21px;height:21px}
+  .topbar{position:sticky;top:0;z-index:10;height:auto;min-height:68px;padding:10px 16px;gap:8px;flex-wrap:wrap;background:#fff}
+  .breadcrumb{font-size:13px;flex-shrink:0}
+  .breadcrumb a{display:inline-flex;align-items:center;min-height:44px}
+  .top-actions{gap:8px;flex-wrap:wrap;justify-content:flex-end}
+  .save-status{font-size:12px}
+  .top-actions .compact{font-size:13px;padding:9px 10px}
+  .content{padding:24px 16px max(18px,env(safe-area-inset-bottom))}
+  .page-heading,.portal .page-heading{flex-wrap:wrap;gap:12px;align-items:flex-start}
+  .page-heading>div{min-width:0;flex:1 1 220px}
+  .page-heading h1{font-size:28px}
+  .page-heading p{font-size:14px;max-width:none}
+  .app-shell .page-heading>a{display:none}
+  .page-heading>button{font-size:14px;padding:10px 12px}
+  .eyebrow{font-size:10px;letter-spacing:1px}
+  .project-bar{display:grid;grid-template-columns:minmax(0,1fr) 44px;gap:12px;padding:14px}
+  .project-bar>svg{display:none}
+  .project-select{width:100%}
+  .project-select label{font-size:12px}
+  .project-select select{max-width:100%;width:100%;font-size:16px;padding:7px 20px 7px 0}
+  .project-meta{grid-column:1/-1;grid-row:2;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:auto;margin:0;gap:10px;font-size:12px}
+  .project-meta span,.project-meta span:last-child{display:block}
+  .project-meta b{display:block;font-size:13px;margin:3px 0 0}
+  .stat{min-width:0;padding:14px}
+  .stat>div:first-child{font-size:13px;gap:5px}
+  .stat>p{font-size:12px;line-height:1.6;min-height:38px}
+  .stat .text-button{font-size:13px;padding:6px 0}
+  .section-heading{gap:12px;flex-wrap:wrap}
+  .section-heading .text-button{font-size:13px}
+  .section-heading h2{font-size:18px}
+  .phases{grid-template-columns:1fr;gap:10px;padding:0 18px 20px}
+  .phase{padding:12px 0;gap:14px;min-width:0}
+  .phase-number{width:30px;height:30px;font-size:12px}
+  .phase h3{font-size:16px;margin:3px 0 10px}
+  .phase small,.phase p{font-size:12px}
+  .phase p{margin-top:6px}
+  .focus>p,.focus b,.week-card>p,.week-detail p,.docs-intro p,.backup-panel p{font-size:14px}
+  .focus small,.focus li>span,.week-top small,.week-detail b,.gate-note,.instruction small{font-size:13px}
+  .focus .primary{font-size:14px}
+  .table-scroll{overflow:visible}
+  .table-scroll .responsive-table{min-width:0;width:100%;display:block;white-space:normal;font-size:14px}
+  .responsive-table thead{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+  .responsive-table tbody{display:grid;gap:12px;padding:0 14px 16px}
+  .responsive-table tr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;border:1px solid var(--line);border-radius:10px;padding:16px;background:#fff}
+  .responsive-table td,.responsive-table td:first-child{display:block;padding:0;border:0;min-width:0;overflow-wrap:anywhere}
+  .responsive-table td[data-label]::before{content:attr(data-label);display:block;font-size:12px;color:#62768f;margin-bottom:5px}
+  .responsive-table .row-title,.responsive-table .row-action{grid-column:1/-1}
+  .task-title{width:100%;max-width:none;min-height:44px;padding:0}
+  .task-title span,.task-title em{font-size:12px;color:#62768f}
+  .task-title b{font-size:16px;line-height:1.65;color:#29415d}
+  .badge,.priority{font-size:12px;padding:4px 8px}
+  .row-action>button{width:100%;justify-content:space-between;background:#f4f7fc;color:#28578f}
+  .mobile-label{display:inline}
+  .audit-table tr{grid-template-columns:1fr}
+  .members-table td small{font-size:13px}
+  .toolbar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:16px}
+  .search-field{grid-column:1/-1;min-width:0}
+  .toolbar button{grid-column:1/-1;font-size:14px;min-height:44px}
+  .pagination{flex-direction:column;align-items:stretch;gap:12px;font-size:13px}
+  .pagination>div{display:grid;grid-template-columns:1fr 1fr}
+  .pagination button{font-size:14px;min-height:44px}
+  .info-strip,.notice{font-size:14px;line-height:1.8}
+  .notice{align-items:flex-start}
+  .notice>svg{flex-shrink:0;margin-top:5px}
+  .form-grid,.competency-grid{grid-template-columns:minmax(0,1fr);gap:16px}
+  .score-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .assessment h2{font-size:18px}
+  .result{font-size:12px;white-space:normal}
+  .score-total{font-size:14px;flex-wrap:wrap;gap:8px}
+  .score-total small{font-size:12px}
+  .checks{display:grid;grid-template-columns:1fr;gap:4px}
+  .competency{padding:18px}
+  .competency h3{font-size:16px}
+  .competency h3 span{font-size:13px}
+  .document-card>small{font-size:11px}
+  .document-card>span,.document-card .button{font-size:14px}
+  .button-row button,.button-row .button{font-size:14px;min-height:44px;flex:1 1 130px;padding:10px 12px}
+  .page-footer{font-size:12px;flex-direction:column;align-items:flex-start;gap:10px}
+  .page-footer>div{width:100%;justify-content:space-between;flex-wrap:wrap}
+  .page-footer .text-button{font-size:13px;min-height:44px}
+  dialog{width:calc(100vw - 16px);max-width:none;max-height:calc(100dvh - 16px);margin:auto;border-radius:12px}
+  .modal-head{padding:14px 16px;gap:8px}
+  .modal-head h2{font-size:17px;line-height:1.6;padding:0}
+  .modal-content{padding:16px 16px max(20px,env(safe-area-inset-bottom))}
+  .instruction{font-size:14px;padding:16px}
+  .modal-actions{position:sticky;bottom:0;background:#fff;padding:12px 0 max(4px,env(safe-area-inset-bottom));gap:10px;z-index:1}
+  .modal-actions button{flex:1;min-height:48px;font-size:15px}
+  .portal-header{padding:16px;gap:10px;flex-wrap:wrap}
+  .portal .brand{gap:10px}
+  .portal .brand strong{font-size:18px}
+  .portal .brand span{font-size:8px;letter-spacing:.7px}
+  .portal .brand-mark{width:40px;height:40px}
+  .portal-auth .button{font-size:13px;padding:10px}
+  .portal-public,.portal-main{padding:26px 16px}
+  .portal-hero{padding:18px 0 32px}
+  .portal-hero h1{font-size:clamp(28px,8vw,36px);letter-spacing:-.5px;line-height:1.45}
+  .portal-hero p{font-size:15px}
+  .portal-hero>.primary{width:100%;min-height:48px}
+  .portal-features section,.portal-course{padding:22px}
+  .portal-course h2{font-size:22px}
+  .course-strip{gap:20px 12px}
+  .course-strip div{padding-left:10px}
+  .course-strip b{font-size:14px}
+  .course-strip small{font-size:12px}
+  .portal details summary{min-height:44px;padding-block:8px}
+  .portal-tabs{display:flex;gap:5px;overflow:visible}
+  .portal-tabs button{flex:1;min-width:0;flex-direction:column;font-size:13px;padding:10px 4px;white-space:normal;line-height:1.5}
+  .portal-tabs svg{width:20px;height:20px}
+  .create-project,.project-card,.member-form{padding:20px;min-width:0}
+  .create-project label{width:100%;margin:0}
+  .project-card h2{font-size:21px}
+  .project-cards{gap:18px}
+  .portal-modal-backdrop{padding:8px}
+  .portal-modal{padding:16px;max-height:calc(100dvh - 16px);width:100%;overscroll-behavior:contain}
+  .portal-modal .section-heading{padding:0 0 12px;position:sticky;top:-16px;background:#fff;z-index:1;align-items:flex-start;flex-wrap:nowrap}
+  .portal-modal .section-heading h2{font-size:18px;min-width:0}
+  .portal-modal .section-heading button{flex-shrink:0}
+  .portal-modal form>.primary{width:100%;min-height:48px}
+  .grant-list>div{flex-direction:column;gap:4px}
+  .grant-list small{font-size:13px}
+  .grant-list b{white-space:normal}
+  .portal-footer{padding:24px 16px max(24px,env(safe-area-inset-bottom));font-size:12px;align-items:flex-start}
+  .portal-footer svg{flex-shrink:0;margin-top:3px}
+  .portal-loading{padding:70px 20px;font-size:14px}
+}
+@media(max-width:380px){
+  .topbar{align-items:flex-start}
+  .top-actions{flex:1}
+  .save-status{flex-basis:100%;justify-content:flex-end}
+  .course-strip{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .stat>div:first-child svg{display:none}
+}
