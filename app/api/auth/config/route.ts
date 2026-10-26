@@ -1,3 +1,3 @@
-import {firebaseWebConfig} from '../../../firebase-config';
+import {supabaseWebConfig} from '../../../supabase-config';
 export const dynamic='force-dynamic';
-export function GET(){const config=firebaseWebConfig();return Response.json({enabled:!!config,config},{headers:{'Cache-Control':'no-store'}});}
+export function GET(){const config=supabaseWebConfig();return Response.json({enabled:!!config&&Object.values(config.methods).some(Boolean),config},{headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});}

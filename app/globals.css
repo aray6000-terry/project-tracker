@@ -212,3 +212,11 @@
  .login-intro{padding:0 4px}.login-intro .eyebrow{font-size:9px}.login-intro h1{font-size:30px;margin:10px 0}.login-intro>p{font-size:15px;margin:10px 0}.login-assurance{margin-top:16px;font-size:13px}.login-assurance br{display:none}
  .login-card{padding:22px 18px;border-radius:16px}.login-card h2{font-size:20px}.login-card .button-row button{font-size:14px}.login-tabs button{font-size:14px}.login-footer{padding:10px 16px 24px;gap:4px 14px}
 }
+
+/* OTP forms remain usable at narrow phone widths. */
+.login-tabs{margin-bottom:20px}
+.login-tabs button{white-space:normal;min-width:0;gap:4px;line-height:1.5}
+.login-card input.otp-input{font-size:24px;letter-spacing:.18em;font-variant-numeric:tabular-nums}
+.login-destination strong{display:block;overflow-wrap:anywhere}
+.callback-card{width:calc(100% - 32px);max-width:560px;margin:15vh auto}
+@media(max-width:360px){.login-tabs button{font-size:12px}.login-tabs svg{display:none}.login-intro h1{font-size:27px}.google-login{font-size:14px!important}}

@@ -30,7 +30,7 @@ const worker = {
     protectedResponse.headers.set('Permissions-Policy','camera=(), microphone=(), geolocation=()');
     protectedResponse.headers.set('Content-Security-Policy', "object-src 'none'; base-uri 'self'; frame-ancestors 'self' https://chatgpt.com; form-action 'self'");
     if (new URL(request.url).protocol === 'https:') protectedResponse.headers.set('Strict-Transport-Security','max-age=31536000');
-    if (/^\/(api|workspace|mcp)(\/|$)/.test(new URL(request.url).pathname)) protectedResponse.headers.set('Cache-Control','private, no-store');
+    if (/^\/(api|workspace|mcp|login|auth)(\/|$)/.test(new URL(request.url).pathname)) protectedResponse.headers.set('Cache-Control','private, no-store');
     return protectedResponse;
   },
 };

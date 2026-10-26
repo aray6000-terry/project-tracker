@@ -2,30 +2,40 @@ import {env} from 'cloudflare:workers';
 import {z} from 'zod';
 import {getRequestIdentity,IdentityError} from './request-identity';
 import {isAdministrator} from './server-access';
+import {contactSchema,normalizeContact} from './contact';
 import {projectSchema,initialState,tasks,assessmentResult,type Project} from './model';
 export class AccessError extends Error {constructor(public status:number,message:string){super(message);}}
-export type Actor={email:string;userId:string;name:string;admin:boolean;canCreate:boolean;canShare:boolean;provider:'firebase'|'chatgpt'};
-export type Member={email:string;name:string;active:number;can_create:number;can_share:number;revision:number;updated_at:string;firebase_uid:string|null};
+export type Actor={email:string;userId:string;name:string;admin:boolean;canCreate:boolean;canShare:boolean;provider:'supabase'|'chatgpt'};
+export type Member={email:string;name:string;active:number;can_create:number;can_share:number;revision:number;updated_at:string;firebase_uid:string|null;supabase_uid:string|null};
 export type ProjectRow={id:string;payload:string;created_by:string;revision:number;updated_at:string};
 export const normalize=(email:string)=>email.trim().toLowerCase();
 export const idSchema=z.string().regex(/^[a-z0-9-]{1,80}$/);
-export const emailSchema=z.string().trim().email().max(254).transform(normalize);
+// The legacy email column is the immutable member/ACL key; it may now hold E.164.
+export const emailSchema=contactSchema;
 export const roleSchema=z.enum(['viewer','editor','manager']);
 export function db(){if(!env.DB)throw new AccessError(503,'資料庫暫時無法使用。');return env.DB;}
 export async function actor():Promise<Actor>{
  const u=await getRequestIdentity();if(!u)throw new AccessError(401,'請先登入。');
  const email=normalize(u.email),admin=u.provider==='chatgpt'&&isAdministrator(u,env.TRAINING_ADMIN_EMAIL);
  if(admin)return {email,userId:u.userId,name:u.displayName||email,admin:true,canCreate:true,canShare:true,provider:u.provider};
- if(u.provider!=='firebase')throw new AccessError(403,'工程師請改用Google帳號或信箱密碼登入。');
- const m=await db().prepare('SELECT * FROM team_members WHERE email=? AND active=1').bind(email).first<Member>();
- if(!m)throw new AccessError(403,'此帳號尚未經管理者核准，或已停用。請提供登入信箱給管理者。');
- if(m.firebase_uid&&m.firebase_uid!==u.userId)throw new AccessError(403,'登入帳號與已綁定身份不符，請聯絡管理者。');
- if(!m.firebase_uid){
-  let linked:{firebase_uid:string}|null=null;
-  try{linked=await db().prepare('UPDATE team_members SET firebase_uid=? WHERE email=? AND active=1 AND (firebase_uid IS NULL OR firebase_uid=?) RETURNING firebase_uid').bind(u.userId,email,u.userId).first<{firebase_uid:string}>();}catch{throw new AccessError(403,'登入身份無法綁定，請聯絡管理者。');}
+ if(u.provider!=='supabase')throw new AccessError(403,'工程師請使用Google、Email或手機登入入口。');
+ // Stable provider identity wins; contact changes cannot acquire another member's grants.
+ let m=await db().prepare('SELECT * FROM team_members WHERE supabase_uid=?').bind(u.userId).first<Member>();
+ if(!m){
+  const contacts=[email,u.phone?normalizeContact(u.phone):''].filter(Boolean);
+  if(!contacts.length)throw new AccessError(403,'請先完成聯絡方式驗證。');
+  const candidates=await db().prepare('SELECT * FROM team_members WHERE email IN ('+contacts.map(()=>'?').join(',')+')').bind(...contacts).all<Member>();
+  if(candidates.results.length>1)throw new AccessError(403,'聯絡方式對應多位成員，請由管理者確認，不會自動合併權限。');
+  m=candidates.results[0]||null;
+ }
+ if(!m||!m.active)throw new AccessError(403,'此帳號尚未經管理者核准，或已停用。請提供登入Email或手機給管理者。');
+ if(m.supabase_uid&&m.supabase_uid!==u.userId)throw new AccessError(403,'登入帳號與已綁定身份不符，請聯絡管理者。');
+ if(!m.supabase_uid){
+  let linked:{supabase_uid:string}|null=null;
+  try{linked=await db().prepare('UPDATE team_members SET supabase_uid=? WHERE email=? AND active=1 AND (supabase_uid IS NULL OR supabase_uid=?) RETURNING supabase_uid').bind(u.userId,m.email,u.userId).first<{supabase_uid:string}>();}catch{throw new AccessError(403,'登入身份無法綁定，請聯絡管理者。');}
   if(!linked)throw new AccessError(403,'帳號狀態已改變，請聯絡管理者。');
  }
- return {email,userId:'firebase:'+u.userId,name:m.name||email,admin:false,canCreate:!!m.can_create,canShare:!!m.can_share,provider:u.provider};
+ return {email:m.email,userId:'supabase:'+u.userId,name:m.name||m.email,admin:false,canCreate:!!m.can_create,canShare:!!m.can_share,provider:u.provider};
 }
 export function requireAdmin(a:Actor){if(!a.admin)throw new AccessError(403,'僅管理者可操作。');}
 export function json(value:unknown,status=200){return Response.json(value,{status,headers:{'Cache-Control':'private, no-store','Vary':'Cookie','X-Content-Type-Options':'nosniff'}});}

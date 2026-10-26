@@ -3,10 +3,11 @@ declare namespace Cloudflare {
     DB?: D1Database;
     TRAINING_ADMIN_EMAIL?: string;
     PROJECT_ARCHIVE_ROOT?: string;
-    FIREBASE_PROJECT_ID?: string;
-    FIREBASE_WEB_API_KEY?: string;
-    FIREBASE_AUTH_DOMAIN?: string;
-    FIREBASE_APP_ID?: string;
+    SUPABASE_URL?: string;
+    SUPABASE_PUBLISHABLE_KEY?: string;
+    AUTH_EMAIL_READY?: string;
+    AUTH_GOOGLE_READY?: string;
+    AUTH_PHONE_READY?: string;
     BUCKET?: R2Bucket;
   }
 }

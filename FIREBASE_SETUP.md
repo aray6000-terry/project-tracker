@@ -1,5 +1,7 @@
 # 工程師免 ChatGPT 登入：Firebase 啟用清單
 
+> 歷史草稿，2026-10-26 已改採 Supabase 方向；Firebase 未曾啟用。請依 `SUPABASE_SETUP.md` 辦理，勿再套用本文設定。
+
 更新：2026-10-25。狀態：程式與本機安全檢查完成；Firebase 專案尚未連接，正式網站尚未切換。
 
 ## Firebase 的用途
